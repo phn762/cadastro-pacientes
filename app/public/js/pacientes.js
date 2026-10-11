@@ -1,4 +1,5 @@
 import { requisitarApi } from './api.js';
+import './cadastro.js';
 
 const formularioBusca = document.querySelector('#formulario-busca');
 const campoBusca = document.querySelector('#busca');
@@ -29,6 +30,24 @@ function atualizarBotoes() {
     resultado.setAttribute('aria-busy', String(carregando));
 }
 
+function criarBotaoAcao(rotulo, desenho) {
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'botao-secundario botao-acao';
+    botao.title = rotulo;
+    botao.setAttribute('aria-label', rotulo);
+    botao.setAttribute('aria-disabled', 'true');
+
+    const icone = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icone.setAttribute('viewBox', '0 0 24 24');
+    icone.setAttribute('aria-hidden', 'true');
+    const caminho = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    caminho.setAttribute('d', desenho);
+    icone.append(caminho);
+    botao.append(icone);
+    return botao;
+}
+
 function exibirPacientes(pacientes) {
     listaPacientes.replaceChildren();
 
@@ -42,6 +61,15 @@ function exibirPacientes(pacientes) {
             linha.append(celula);
         }
 
+        const celulaAcoes = document.createElement('td');
+        const acoes = document.createElement('div');
+        acoes.className = 'acoes-paciente';
+        acoes.append(
+            criarBotaoAcao('Editar paciente', 'M16 3l5 5M4 15L16 3l5 5L9 20l-6 1 1-6z'),
+            criarBotaoAcao('Excluir paciente', 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7')
+        );
+        celulaAcoes.append(acoes);
+        linha.append(celulaAcoes);
         listaPacientes.append(linha);
     }
 }
@@ -117,3 +145,7 @@ botaoAnterior.addEventListener('click', () => carregarPacientes(paginaAtual - 1)
 botaoProxima.addEventListener('click', () => carregarPacientes(paginaAtual + 1));
 
 atualizarBotoes();
+
+document.addEventListener('paciente-cadastrado', () => {
+    if (listagemDisponivel) carregarPacientes();
+});

@@ -10,9 +10,8 @@
     <body>
         <main class="conteudo">
             <nav class="navegacao" aria-label="Navegação principal">
-                <a href="/">Início</a>
-                <a href="/pacientes">Pacientes</a>
-                <a href="/unidades" aria-current="page">Unidades</a>
+                <a class="botao-link botao-secundario" href="/">Início</a>
+                <a class="botao-link botao-secundario" href="/pacientes">Pacientes</a>
             </nav>
             <header class="cabecalho">
                 <h1>Unidades de saúde</h1>
