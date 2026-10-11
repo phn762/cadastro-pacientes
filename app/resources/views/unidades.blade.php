@@ -19,7 +19,6 @@
             </header>
             <section class="painel" aria-labelledby="titulo-unidades">
                 <h2 id="titulo-unidades">Lista de unidades</h2>
-                <button type="button" id="atualizar-unidades" class="botao-secundario">Atualizar lista</button>
                 <div id="resultado-unidades" aria-busy="false">
                     <p id="mensagem-unidades" class="mensagem" role="status">Carregando unidades…</p>
                     <div id="tabela-unidades" class="area-tabela" hidden>

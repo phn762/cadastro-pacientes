@@ -44,7 +44,8 @@
                         </div>
                         <div class="campo">
                             <label for="telefone-paciente">Telefone (opcional)</label>
-                            <input id="telefone-paciente" name="phone" type="tel" maxlength="20" autocomplete="tel" aria-describedby="erro-telefone">
+                            <input id="telefone-paciente" name="phone" type="tel" maxlength="15" autocomplete="tel" aria-describedby="ajuda-telefone erro-telefone">
+                            <p id="ajuda-telefone" class="ajuda-campo">8 números sem DDD ou 10 ou 11 com DDD.</p>
                             <p id="erro-telefone" class="erro-campo" data-erro="phone" hidden></p>
                         </div>
                         <div class="campo">
@@ -104,5 +105,13 @@
 
             <noscript><p class="mensagem erro">Ative o JavaScript para consultar os pacientes.</p></noscript>
         </main>
+        <dialog id="confirmacao-exclusao" class="confirmacao" aria-labelledby="titulo-exclusao" aria-describedby="descricao-exclusao">
+            <h2 id="titulo-exclusao">Excluir paciente?</h2>
+            <p id="descricao-exclusao">Você vai excluir <strong id="nome-exclusao"></strong>. Esta ação não pode ser desfeita.</p>
+            <form method="dialog" class="acoes-confirmacao">
+                <button type="submit" value="cancelar" class="botao-secundario" autofocus>Cancelar</button>
+                <button type="submit" value="excluir" class="botao-perigo">Excluir paciente</button>
+            </form>
+        </dialog>
     </body>
 </html>

@@ -15,6 +15,7 @@ h1 { margin: 0; font-size: 36px; line-height: 1.2; color: #21644f; }
 .cabecalho > p:last-child { color: #596b64; margin-bottom: 0; }
 h2 { margin: 0 0 24px; font-size: 21px; }
 .navegacao { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+#novo-paciente { margin-left: auto; }
 .botao-link { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 18px; border: 1px solid #21644f; border-radius: 6px; font-weight: bold; text-decoration: none; }
 .botao-link:hover { background: #edf5f1; }
 a:focus-visible { outline: 3px solid #76bca4; outline-offset: 3px; }
@@ -40,6 +41,7 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .campo-completo { grid-column: 1 / -1; }
 .acoes-formulario { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
 .erro-campo { color: #952f25; font-size: 14px; margin: 6px 0 0; }
+.ajuda-campo { color: #596b64; font-size: 13px; margin: 6px 0 0; }
 [aria-invalid="true"] { border-color: #952f25; }
 .mensagem.sucesso { background: #e7f5ec; color: #21644f; }
 
@@ -54,11 +56,18 @@ td:first-child { overflow-wrap: anywhere; }
 td:nth-child(2) { white-space: nowrap; }
 .coluna-acoes { width: 112px; }
 .acoes-paciente { display: flex; gap: 8px; }
-.botao-acao { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 10px; cursor: default; }
+.botao-acao { display: inline-flex; align-items: center; justify-content: center; width: 44px; padding: 10px; }
 .botao-acao svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .paginacao { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 24px; }
 .paginacao span { font-size: 14px; }
 .visualmente-oculto { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.confirmacao { width: min(100% - 32px, 440px); max-height: 90vh; padding: 28px; border: 0; border-radius: 14px; color: inherit; box-shadow: 0 16px 60px #0003; }
+.confirmacao::backdrop { background: #142b24a6; }
+.confirmacao h2 { margin: 0 0 12px; }
+.confirmacao p { margin-bottom: 24px; color: #596b64; overflow-wrap: anywhere; }
+.acoes-confirmacao { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+.botao-perigo { background: #ad352b; border-color: #ad352b; }
+.botao-perigo:hover:not(:disabled) { background: #89291f; }
 
 @media (max-width: 600px) {
     .conteudo { margin: 28px auto; }

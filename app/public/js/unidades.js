@@ -1,15 +1,11 @@
 import { requisitarApi } from './api.js';
 
-const botaoAtualizar = document.querySelector('#atualizar-unidades');
 const resultado = document.querySelector('#resultado-unidades');
 const mensagem = document.querySelector('#mensagem-unidades');
 const tabela = document.querySelector('#tabela-unidades');
 const lista = document.querySelector('#lista-unidades');
 
 async function carregarUnidades() {
-    if (botaoAtualizar.disabled) return;
-
-    botaoAtualizar.disabled = true;
     resultado.setAttribute('aria-busy', 'true');
     mensagem.hidden = false;
     mensagem.classList.remove('erro');
@@ -35,12 +31,10 @@ async function carregarUnidades() {
         tabela.hidden = unidades.length === 0;
     } catch {
         mensagem.classList.add('erro');
-        mensagem.textContent = 'Não foi possível carregar as unidades. Tente novamente usando Atualizar lista.';
+        mensagem.textContent = 'Não foi possível carregar as unidades. Recarregue a página para tentar novamente.';
     } finally {
-        botaoAtualizar.disabled = false;
         resultado.setAttribute('aria-busy', 'false');
     }
 }
 
-botaoAtualizar.addEventListener('click', carregarUnidades);
 carregarUnidades();

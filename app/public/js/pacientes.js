@@ -1,5 +1,5 @@
 import { requisitarApi } from './api.js';
-import './cadastro.js';
+import { editarPaciente } from './cadastro.js';
 
 const formularioBusca = document.querySelector('#formulario-busca');
 const campoBusca = document.querySelector('#busca');
@@ -14,29 +14,38 @@ const paginacao = document.querySelector('#paginacao');
 const informacaoPagina = document.querySelector('#informacao-pagina');
 const botaoAnterior = document.querySelector('#pagina-anterior');
 const botaoProxima = document.querySelector('#proxima-pagina');
+const botaoNovo = document.querySelector('#novo-paciente');
+const aviso = document.querySelector('#aviso-cadastro');
+const confirmacaoExclusao = document.querySelector('#confirmacao-exclusao');
+const nomeExclusao = document.querySelector('#nome-exclusao');
 
 let paginaAtual = 1;
 let ultimaPagina = 1;
 let buscaAtual = '';
 let carregando = false;
 let listagemDisponivel = false;
+let alterando = false;
+let resolverConfirmacao = null;
 
 function atualizarBotoes() {
-    campoBusca.disabled = carregando;
-    botaoBuscar.disabled = carregando;
-    botaoLimpar.disabled = carregando;
-    botaoAnterior.disabled = carregando || !listagemDisponivel || paginaAtual <= 1;
-    botaoProxima.disabled = carregando || !listagemDisponivel || paginaAtual >= ultimaPagina;
-    resultado.setAttribute('aria-busy', String(carregando));
+    const ocupado = carregando || alterando;
+    campoBusca.disabled = ocupado;
+    botaoBuscar.disabled = ocupado;
+    botaoLimpar.disabled = ocupado;
+    botaoNovo.disabled = ocupado;
+    botaoAnterior.disabled = ocupado || !listagemDisponivel || paginaAtual <= 1;
+    botaoProxima.disabled = ocupado || !listagemDisponivel || paginaAtual >= ultimaPagina;
+    for (const botao of listaPacientes.querySelectorAll('button')) botao.disabled = ocupado;
+    resultado.setAttribute('aria-busy', String(ocupado));
 }
 
-function criarBotaoAcao(rotulo, desenho) {
+function criarBotaoAcao(rotulo, desenho, aoClicar) {
     const botao = document.createElement('button');
     botao.type = 'button';
     botao.className = 'botao-secundario botao-acao';
     botao.title = rotulo;
     botao.setAttribute('aria-label', rotulo);
-    botao.setAttribute('aria-disabled', 'true');
+    botao.addEventListener('click', aoClicar);
 
     const icone = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     icone.setAttribute('viewBox', '0 0 24 24');
@@ -65,8 +74,8 @@ function exibirPacientes(pacientes) {
         const acoes = document.createElement('div');
         acoes.className = 'acoes-paciente';
         acoes.append(
-            criarBotaoAcao('Editar paciente', 'M16 3l5 5M4 15L16 3l5 5L9 20l-6 1 1-6z'),
-            criarBotaoAcao('Excluir paciente', 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7')
+            criarBotaoAcao('Editar paciente', 'M16 3l5 5M4 15L16 3l5 5L9 20l-6 1 1-6z', () => abrirEdicao(paciente.id)),
+            criarBotaoAcao('Excluir paciente', 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7', () => excluirPaciente(paciente))
         );
         celulaAcoes.append(acoes);
         linha.append(celulaAcoes);
@@ -75,7 +84,7 @@ function exibirPacientes(pacientes) {
 }
 
 async function carregarPacientes(pagina = 1) {
-    if (carregando) return;
+    if (carregando || alterando) return;
 
     carregando = true;
     listagemDisponivel = false;
@@ -92,6 +101,11 @@ async function carregarPacientes(pagina = 1) {
 
     try {
         const dados = await requisitarApi(`/patients?${parametros}`);
+        if (dados.current_page > dados.last_page) {
+            carregando = false;
+            await carregarPacientes(dados.last_page);
+            return;
+        }
         paginaAtual = dados.current_page;
         ultimaPagina = dados.last_page;
         exibirPacientes(dados.data);
@@ -121,13 +135,13 @@ async function carregarPacientes(pagina = 1) {
 
 formularioBusca.addEventListener('submit', (evento) => {
     evento.preventDefault();
-    if (carregando) return;
+    if (carregando || alterando) return;
     buscaAtual = campoBusca.value.trim();
     carregarPacientes();
 });
 
 botaoLimpar.addEventListener('click', () => {
-    if (carregando) return;
+    if (carregando || alterando) return;
     campoBusca.value = '';
     buscaAtual = '';
     paginaAtual = 1;
@@ -146,6 +160,75 @@ botaoProxima.addEventListener('click', () => carregarPacientes(paginaAtual + 1))
 
 atualizarBotoes();
 
-document.addEventListener('paciente-cadastrado', () => {
+document.addEventListener('paciente-salvo', () => {
     if (listagemDisponivel) carregarPacientes();
 });
+
+async function abrirEdicao(id) {
+    if (carregando || alterando) return;
+    alterando = true;
+    atualizarBotoes();
+    try {
+        await editarPaciente(id);
+    } finally {
+        alterando = false;
+        atualizarBotoes();
+    }
+}
+
+function confirmarExclusao(paciente) {
+    nomeExclusao.textContent = paciente.name;
+    confirmacaoExclusao.returnValue = 'cancelar';
+    confirmacaoExclusao.showModal();
+    return new Promise((resolver) => {
+        resolverConfirmacao = resolver;
+    });
+}
+
+function encerrarConfirmacao(confirmado) {
+    confirmacaoExclusao.close();
+    resolverConfirmacao?.(confirmado);
+    resolverConfirmacao = null;
+}
+
+confirmacaoExclusao.querySelector('form').addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    encerrarConfirmacao(evento.submitter.value === 'excluir');
+});
+
+confirmacaoExclusao.addEventListener('cancel', (evento) => {
+    evento.preventDefault();
+    encerrarConfirmacao(false);
+});
+
+async function excluirPaciente(paciente) {
+    if (carregando || alterando) return;
+
+    const focoAnterior = document.activeElement;
+    alterando = true;
+    atualizarBotoes();
+
+    try {
+        if (!await confirmarExclusao(paciente)) return;
+        aviso.hidden = true;
+        await requisitarApi(`/patients/${paciente.id}`, 'DELETE');
+        aviso.textContent = 'Paciente excluído com sucesso.';
+        aviso.classList.remove('erro');
+        aviso.classList.add('sucesso');
+        aviso.hidden = false;
+        alterando = false;
+        await carregarPacientes(paginaAtual);
+    } catch (erro) {
+        aviso.textContent = erro.status === 404
+            ? 'Este paciente já não existe. Atualize a busca.'
+            : 'Não foi possível excluir o paciente. Tente novamente.';
+        aviso.classList.remove('sucesso');
+        aviso.classList.add('erro');
+        aviso.hidden = false;
+    } finally {
+        alterando = false;
+        atualizarBotoes();
+        if (focoAnterior.isConnected) focoAnterior.focus();
+        else botaoBuscar.focus();
+    }
+}

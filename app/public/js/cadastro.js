@@ -13,16 +13,19 @@ const aviso = document.querySelector('#aviso-cadastro');
 const campoCpf = formulario.elements.namedItem('cpf');
 const campoTelefone = formulario.elements.namedItem('phone');
 const campoUnidade = formulario.elements.namedItem('health_unit_id');
+const tituloFormulario = document.querySelector('#titulo-cadastro');
 
 let salvando = false;
 let carregandoUnidades = false;
+let pacienteEmEdicao = null;
+let formularioDisponivel = false;
 
 function atualizarControles() {
     campos.disabled = salvando || carregandoUnidades;
-    botaoSalvar.disabled = salvando || carregandoUnidades || campoUnidade.options.length <= 1;
+    botaoSalvar.disabled = salvando || carregandoUnidades || !formularioDisponivel;
     botaoCancelar.disabled = salvando;
     botaoNovo.disabled = salvando || carregandoUnidades;
-    botaoSalvar.textContent = salvando ? 'Salvando…' : 'Salvar paciente';
+    botaoSalvar.textContent = salvando ? 'Salvando…' : pacienteEmEdicao ? 'Salvar alterações' : 'Salvar paciente';
     formulario.setAttribute('aria-busy', String(salvando || carregandoUnidades));
 }
 
@@ -44,14 +47,17 @@ function fecharCadastro() {
     botaoNovo.focus();
 }
 
-async function abrirCadastro() {
+async function abrirCadastro(id = null) {
     if (salvando || carregandoUnidades) return;
-    if (!painel.hidden) {
+    if (!painel.hidden && pacienteEmEdicao === id) {
         formulario.elements.namedItem('name').focus();
         return;
     }
 
     formulario.reset();
+    pacienteEmEdicao = id;
+    formularioDisponivel = false;
+    tituloFormulario.textContent = id ? 'Editar paciente' : 'Cadastrar paciente';
     limparErros();
     aviso.hidden = true;
     painel.hidden = false;
@@ -61,19 +67,32 @@ async function abrirCadastro() {
     carregandoUnidades = true;
     atualizarControles();
     mensagem.hidden = false;
-    mensagem.textContent = 'Carregando unidades…';
+    mensagem.textContent = id ? 'Carregando paciente e unidades…' : 'Carregando unidades…';
     campoUnidade.replaceChildren(new Option('Selecione uma unidade', ''));
 
     try {
-        const unidades = await requisitarApi('/health-units');
+        const [unidades, paciente] = await Promise.all([
+            requisitarApi('/health-units'),
+            id ? requisitarApi(`/patients/${id}`) : Promise.resolve(null),
+        ]);
         for (const unidade of unidades) {
             campoUnidade.add(new Option(unidade.name, unidade.id));
         }
         mensagem.hidden = unidades.length > 0;
         mensagem.textContent = 'Não há unidades disponíveis para cadastrar pacientes.';
-    } catch {
+        formularioDisponivel = unidades.length > 0;
+        if (paciente) {
+            for (const nome of ['name', 'cpf', 'birth_date', 'phone', 'health_unit_id']) {
+                formulario.elements.namedItem(nome).value = paciente[nome] ?? '';
+            }
+            campoCpf.dispatchEvent(new Event('input'));
+            if (campoTelefone.value.length <= 11) campoTelefone.dispatchEvent(new Event('input'));
+        }
+    } catch (erro) {
         mensagem.classList.add('erro');
-        mensagem.textContent = 'Não foi possível carregar as unidades. Cancele e abra o cadastro novamente para tentar.';
+        mensagem.textContent = erro.status === 404
+            ? 'Este paciente não foi encontrado. Cancele e atualize a busca.'
+            : 'Não foi possível carregar os dados. Cancele e tente novamente.';
     } finally {
         carregandoUnidades = false;
         atualizarControles();
@@ -89,9 +108,9 @@ campoCpf.addEventListener('input', () => {
 });
 
 campoTelefone.addEventListener('input', () => {
-    const numeros = campoTelefone.value.replace(/\D/g, '').slice(0, 20);
-    if (numeros.length > 11) {
-        campoTelefone.value = numeros;
+    const numeros = campoTelefone.value.replace(/\D/g, '').slice(0, 11);
+    if (numeros.length <= 8) {
+        campoTelefone.value = numeros.replace(/^(\d{4})(\d)/, '$1-$2');
         return;
     }
     const tamanhoPrefixo = numeros.length > 10 ? 5 : 4;
@@ -120,17 +139,23 @@ formulario.addEventListener('submit', async (evento) => {
     atualizarControles();
 
     try {
-        await requisitarApi('/patients', 'POST', dados);
+        const editando = pacienteEmEdicao !== null;
+        await requisitarApi(editando ? `/patients/${pacienteEmEdicao}` : '/patients', editando ? 'PUT' : 'POST', dados);
         formulario.reset();
         fecharCadastro();
-        aviso.textContent = 'Paciente cadastrado com sucesso. Use Buscar para consultar a lista.';
+        aviso.textContent = editando
+            ? 'Paciente atualizado com sucesso.'
+            : 'Paciente cadastrado com sucesso. Use Buscar para consultar a lista.';
+        aviso.classList.remove('erro');
         aviso.classList.add('sucesso');
         aviso.hidden = false;
-        document.dispatchEvent(new CustomEvent('paciente-cadastrado'));
+        document.dispatchEvent(new CustomEvent('paciente-salvo'));
     } catch (erro) {
         mensagem.hidden = false;
         mensagem.classList.add('erro');
-        mensagem.textContent = 'Não foi possível cadastrar o paciente. Tente novamente.';
+        mensagem.textContent = erro.status === 404
+            ? 'Este paciente não foi encontrado. Cancele e atualize a busca.'
+            : 'Não foi possível salvar o paciente. Tente novamente.';
 
         if (erro.status === 422 && erro.dados?.errors) {
             mensagem.textContent = 'Revise os campos indicados abaixo.';
@@ -155,5 +180,9 @@ formulario.addEventListener('submit', async (evento) => {
     }
 });
 
-botaoNovo.addEventListener('click', abrirCadastro);
+export async function editarPaciente(id) {
+    await abrirCadastro(id);
+}
+
+botaoNovo.addEventListener('click', () => abrirCadastro());
 botaoCancelar.addEventListener('click', fecharCadastro);
