@@ -11,6 +11,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // O seeder de unidades de saúde será registrado na etapa do banco.
+        $this->call(UnidadesSaudeSeeder::class);
     }
 }
